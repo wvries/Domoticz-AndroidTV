@@ -7,6 +7,7 @@ Domoticz AndroidTV plugin
 
 Do not forget to go to Settings > About. Click 7 times on "Build" to activate developper mode.
 Then go to Developper tools and set usb debug mode on.
+
 If you want to use Wake-On-Lan capability, enable it on the TV network menu, and add the TV network card MAC address to the plugin settings!
 
 ### Plugin installation
@@ -15,6 +16,9 @@ If you want to use Wake-On-Lan capability, enable it on the TV network menu, and
     cd ~/domoticz/plugins/
     git clone https://github.com/enesbcs/domo-androidtv.git
     service domoticz restart
+
+AndroidTV plugin now should be appear on Domoticz Hardware list.
+After starting AndroidTV plugin in Domoticz, enable remote access on the TV screen.
 
 ## Customization
 
