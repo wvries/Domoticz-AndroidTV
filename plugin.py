@@ -384,9 +384,6 @@ class BasePlugin:
                pass
         except:
          current_focus = "" #TV probably off
-         Devices[5].Update(nValue=1,sValue="0")
-         Devices[4].Update(nValue=1,sValue="Off")
-
 
 #Power on or Off
      if currentStatus == 0:
@@ -394,7 +391,8 @@ class BasePlugin:
        Devices[1].Update(nValue=0,sValue="Off")
        Devices[2].Update(nValue=0,sValue="Off")
        Devices[3].Update(nValue=0,sValue="Off")
-       Devices[5].Update(nValue=0,sValue="Off")
+       Devices[4].Update(nValue=0,sValue="Off")
+       Devices[5].Update(nValue=0,sValue="0")
        Devices[6].Update(nValue=0,sValue="Off")
      else:
       if Devices[1].nValue != currentStatus:
