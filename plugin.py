@@ -306,102 +306,102 @@ class BasePlugin:
      Domoticz.Debug("Heartbeating...")
      cmdConnect = "adb -s "+Parameters["Address"]+":"+Parameters["Port"]+" "
      if self.initialized==0:
-      self.isConnected = 0
-      return False
+         self.isConnected = 0
+         return False
      self._isAlive()
      currentStatus = 0
      if self.isConnected == 1:
-      try:
-       subprocess.run(["adb", "connect", self.config["host"]+":"+str(self.config["port"])], timeout=1 )
-      except:
-       pass
+         try:
+             subprocess.run(["adb", "connect", self.config["host"]+":"+str(self.config["port"])], timeout=1 )
+         except:
+             pass
      elif self.isConnected == 2:
-      try:
-       log = str(subprocess.check_output("adb -s "+self.config["host"]+":"+str(self.config["port"])+ " shell dumpsys power |grep 'mWakefulness'", shell=True, timeout=2))
-       if "Asleep" not in log: #screen is on and active (also screensaver)
-         currentStatus = 1
-       elif "error:" in log:
-        self.isConnected = 1
-      except:
-       self.isConnected = 1
+         try:
+             log = str(subprocess.check_output("adb -s "+self.config["host"]+":"+str(self.config["port"])+ " shell dumpsys power |grep 'mWakefulness'", shell=True, timeout=2))
+             if "Asleep" not in log: #screen is on and active (also screensaver)
+                 currentStatus = 1
+             elif "error:" in log:
+                 self.isConnected = 1
+         except:
+             self.isConnected = 1
 
 #Get current volume status
-     if self.isConnected==2:
-       try:
-        log = str(subprocess.check_output("adb -s "+self.config["host"]+":"+str(self.config["port"])+ " shell media volume --get", shell=True, timeout=2))
-       except:
-        log = "error:"
-       if ("error:" in log):
-        self.isConnected = 1
-       elif "volume" in log:
-        sl = log.find('volume is')
-        if sl>-1:
-         ts = log[(sl+10):]
-         ta = ts.split(" ")
-         try:
-          self.volume = int(float(ta[0].strip()))
-          if self.volume == 0:
-           ml = 0
-          else:
-           ml = 1
-          try:
-           av = int(Devices[3].sValue)
-          except:
-           av = -1
-          if av != int(self.volume):
-           Devices[3].Update(nValue=ml,sValue=str(self.volume))
-         except:
-          pass
+    if self.isConnected>=1:
+        try:
+            log = str(subprocess.check_output("adb -s "+self.config["host"]+":"+str(self.config["port"])+ " shell media volume --get", shell=True, timeout=2))
+        except:
+            log = "error:"
+        if ("error:" in log):
+            self.isConnected = 1
+        elif "volume" in log:
+            sl = log.find('volume is')
+            if sl>-1:
+                ts = log[(sl+10):]
+                ta = ts.split(" ")
+            try:
+                self.volume = int(float(ta[0].strip()))
+                if self.volume == 0:
+                    ml = 0
+                else:
+                    ml = 1
+                try:
+                    av = int(Devices[3].sValue)
+                except:
+                    av = -1
+                if av != int(self.volume):
+                    Devices[3].Update(nValue=ml,sValue=str(self.volume))
+            except:
+                pass
 
 #see which app is active (App text device 4 and Selector Switch 5)
-      if self.isConnected>=1:
+    if self.isConnected>=1:
         try:
-          log = str(subprocess.check_output("adb -s "+self.config["host"]+":"+str(self.config["port"])+ " shell dumpsys activity |grep -E 'mCurrentFocus'", >
-         except Exception as e:
-          log = "error: "+str(e)
-         if ("error:" in log):
-          self.isConnected = 1
-         elif "Focus" in log:
-          try:
-            current_focus = re.search(r'(\b\S+\/\S+\b)', log, re.IGNORECASE).group(0)
-            ase = 'Apps'
-            cmdl = ""
-            if self.cfg.has_section(ase):
-             ops = self.cfg.options(ase)
-             cmdc = 0
-             for o in ops:
-              cmdl = self.cfg.get(ase,o,raw=True)
-              #find the activity from the list in the database
-              ret=re.split("shell am start -n|shell monkey -p|-c|/", cmdl)
-              cmdc += 10
-              if (str(ret[1]).strip() in str(current_focus).strip()):
-               try:
-                 if str(Devices[5].sValue).strip() != str(cmdc): # Updating Selector Switch
-                   Devices[5].Update(nValue=1,sValue=str(cmdc))
-                 if str(Devices[4].sValue).strip() != str(o).strip(): # Updating Text device with App name
-                   Devices[4].Update(nValue=1,sValue=str(o).strip())
-               except:
-                 pass
-         except:
+            log = str(subprocess.check_output("adb -s "+self.config["host"]+":"+str(self.config["port"])+ " shell dumpsys activity |grep -E 'mCurrentFocus'", >
+        except Exception as e:
+            log = "error: "+str(e)
+        if ("error:" in log):
+            self.isConnected = 1
+        elif "Focus" in log:
+            try:
+                current_focus = re.search(r'(\b\S+\/\S+\b)', log, re.IGNORECASE).group(0)
+                ase = 'Apps'
+                cmdl = ""
+                if self.cfg.has_section(ase):
+                     ops = self.cfg.options(ase)
+                     cmdc = 0
+                     for o in ops:
+                        cmdl = self.cfg.get(ase,o,raw=True)
+                        #find the activity from the list in the database
+                        ret=re.split("shell am start -n|shell monkey -p|-c|/", cmdl)
+                        cmdc += 10
+                        if (str(ret[1]).strip() in str(current_focus).strip()):
+                           try:
+                             if str(Devices[5].sValue).strip() != str(cmdc): # Updating Selector Switch
+                               Devices[5].Update(nValue=1,sValue=str(cmdc))
+                             if str(Devices[4].sValue).strip() != str(o).strip(): # Updating Text device with App name
+                               Devices[4].Update(nValue=1,sValue=str(o).strip())
+                           except:
+                             pass
+        except:
            current_focus = "" #TV probably off
 
 #Power on or Off
-     if currentStatus == 0:
-      if Devices[1].nValue != currentStatus:
-       Devices[1].Update(nValue=0,sValue="Off")
-       Devices[2].Update(nValue=0,sValue="Off")
-       Devices[3].Update(nValue=0,sValue="Off")
-       Devices[4].Update(nValue=0,sValue="Off")
-       Devices[5].Update(nValue=0,sValue="0")
-       Devices[6].Update(nValue=0,sValue="Off")
-     else:
-      if Devices[1].nValue != currentStatus:
-       Devices[1].Update(nValue=1,sValue="On")
-       Devices[2].Update(nValue=1,sValue="On")
-       Devices[3].Update(nValue=1,sValue="On")
-       Devices[5].Update(nValue=1,sValue="On")
-       Devices[6].Update(nValue=1,sValue="On")
-     return True
+    if currentStatus == 0:
+        if Devices[1].nValue != currentStatus:
+            Devices[1].Update(nValue=0,sValue="Off")
+            Devices[2].Update(nValue=0,sValue="Off")
+            Devices[3].Update(nValue=0,sValue="Off")
+            Devices[4].Update(nValue=0,sValue="Off")
+            Devices[5].Update(nValue=0,sValue="0")
+            Devices[6].Update(nValue=0,sValue="Off")
+        else:
+            if Devices[1].nValue != currentStatus:
+                Devices[1].Update(nValue=1,sValue="On")
+                Devices[2].Update(nValue=1,sValue="On")
+                Devices[3].Update(nValue=1,sValue="On")
+                Devices[5].Update(nValue=1,sValue="On")
+                Devices[6].Update(nValue=1,sValue="On")
+        return True
 
 global _plugin
 _plugin = BasePlugin()
