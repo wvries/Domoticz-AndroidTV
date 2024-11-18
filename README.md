@@ -1,6 +1,9 @@
 # domo-androidtv
 Domoticz AndroidTV plugin
 
+This is a fork of enesbcs/domo-androidtv.
+Thanks for the work he has done.
+
 ## Installation
 
 ### Prerequisite on AndroidTV
