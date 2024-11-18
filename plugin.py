@@ -1,5 +1,5 @@
 """
-<plugin key="AndroidTV" name="Android TV" author="enesbcs" version="0.0.1">
+<plugin key="AndroidTV" name="Android TV integration into Domoticz" author="wvries" version="0.0.1">
     <params>
         <param field="Address" label="IP Address" width="200px" required="true" default="127.0.0.1"/>
         <param field="Port" label="Port" width="40px" required="true" default="5555"/>
@@ -133,7 +133,7 @@ class BasePlugin:
     self.initialized = 1
     return True
 
- def onStop(self):
+def onStop(self):
      Domoticz.Debug("onStop called")
      if self.isConnected == 2:
       try:
@@ -171,7 +171,7 @@ class BasePlugin:
             Domoticz.Log("isAlive status :" +str(self.isConnected))
     return
 
- def _wakeonlan(self):
+def _wakeonlan(self):
      mac = str(self.config["mac"]).strip().upper()
      if len(mac) > 2:
       try:
@@ -197,31 +197,31 @@ class BasePlugin:
       except Exception as e:
        Domoticz.Debug("WOL error"+str(e))
 
- def onCommand(self, Unit, Command, Level, Color):  # react to commands arrived from Domoticz
-    Domoticz.Log("onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level) + ", Connected: " + str(self.isConnected))
-
+def onCommand(self, Unit, Command, Level, Color):  # react to commands arrived from Domoticz
     Command = Command.strip()
+
+    cmdConnect = "adb -s "+Parameters["Address"]+":"+Parameters["Port"]+" "
 
     if (Unit == 1):  # Status
          if (Command == 'On'):
-            if (self.isConnected == 2):
+            if (self.isConnected >= 1):
               try: #adb switch on
-               Domoticz.Debug("ADB on cmd")
-               subprocess.run(["adb", "-s", self.config["host"]+":"+str(self.config["port"]),"shell","input","keyevent","224"], timeout=1 )
+               Domoticz.Debug("Switching TV On")
+               subprocess.run(["adb", "-s", self.config["host"]+":"+str(self.config["port"]),"shell","input","keyevent","224"], timeout=2 )
               except:
                pass
             else:
              self._wakeonlan() #WOL
          else:
-            if (self.isConnected == 2):
+            if (self.isConnected >= 1):
               try: #switch off
-               subprocess.run(["adb", "-s", self.config["host"]+":"+str(self.config["port"]),"shell","input","keyevent","223"], timeout=1 )
+               cmd = cmdConnect + "shell input keyevent 223"
+               result1 = subprocess.run([cmd], shell=True, capture_output=True, text=True, timeout=2)
               except:
                pass
             else:
              Domoticz.Debug("Off cmd when ADB offline")
-
-    if (self.isConnected == 2):
+    if (self.isConnected >= 1):
      if (Unit == 2):  # Source
         if (Command == 'Set Level'):
             ase = 'Sources'
@@ -241,10 +241,12 @@ class BasePlugin:
               subprocess.run(cmd, timeout=2 )
             except:
               pass
+
      if (Unit == 3):  # Volume
         if (Command == 'Set Level'):
               try:
-               subprocess.run(["adb", "-s", self.config["host"]+":"+str(self.config["port"]),"shell","media","volume","--show","--set", str(Level)], timeout=2 )
+               cmdv = cmdConnect + "shell cmd media_session volume --show --set " + str(Level)
+               result1 = subprocess.run([cmdv], shell=True, capture_output=True, text=True, timeout=2)
                if int(Level) == 0:
                 ml = 0
                else:
@@ -253,17 +255,17 @@ class BasePlugin:
               except:
                pass
         elif Command == "Off": #mute
-         if self.volume > 0:
-              try:
-               subprocess.run(["adb", "-s", self.config["host"]+":"+str(self.config["port"]),"shell","input","keyevent","164"], timeout=2 )
-              except:
-               pass
+            try:
+             cmdv = cmdConnect + "shell input keyevent 164"
+             result1 = subprocess.run([cmdv], shell=True, capture_output=True, text=True, timeout=2)
+            except:
+             pass
         elif Command == "On": #unmute
-         if self.volume == 0:
-              try:
-               subprocess.run(["adb", "-s", self.config["host"]+":"+str(self.config["port"]),"shell","input","keyevent","164"], timeout=2 )
-              except:
-               pass
+            try:
+             cmdv = cmdConnect + "shell input keyevent 164"
+             result1 = subprocess.run([cmdv], shell=True, capture_output=True, text=True, timeout=2)
+            except:
+             pass
      if (Unit == 5):  # Apps
         if (Command == 'Set Level'):
             ase = 'Apps'
@@ -277,10 +279,8 @@ class BasePlugin:
               if cmdc >= Level:
                break
             try:
-              cmd = ["adb", "-s", self.config["host"]+":"+str(self.config["port"])]
-              cmd2 = cmdl.split()
-              cmd += cmd2
-              subprocess.run(cmd, timeout=2 )
+              cmd = cmdConnect+cmdl
+              result1 = subprocess.run([cmd], shell=True, capture_output=True, text=True, timeout=2)
             except:
               pass
      if (Unit == 6):  # Remote
@@ -299,11 +299,11 @@ class BasePlugin:
               subprocess.run(["adb", "-s", self.config["host"]+":"+str(self.config["port"]),"shell","input","keyevent",cmdl], timeout=2 )
             except:
               pass
-
     return True
 
- def onHeartbeat(self):
+def onHeartbeat(self):
      Domoticz.Debug("Heartbeating...")
+     cmdConnect = "adb -s "+Parameters["Address"]+":"+Parameters["Port"]+" "
      if self.initialized==0:
       self.isConnected = 0
       return False
@@ -317,12 +317,14 @@ class BasePlugin:
      elif self.isConnected == 2:
       try:
        log = str(subprocess.check_output("adb -s "+self.config["host"]+":"+str(self.config["port"])+ " shell dumpsys power |grep 'mWakefulness'", shell=True, timeout=2))
-       if "Awake" in log:
+       if "Asleep" not in log: #screen is on and active (also screensaver)
          currentStatus = 1
        elif "error:" in log:
         self.isConnected = 1
       except:
        self.isConnected = 1
+
+#Get current volume status
       if self.isConnected==2:
        try:
         log = str(subprocess.check_output("adb -s "+self.config["host"]+":"+str(self.config["port"])+ " shell media volume --get", shell=True, timeout=2))
@@ -349,9 +351,11 @@ class BasePlugin:
            Devices[3].Update(nValue=ml,sValue=str(self.volume))
          except:
           pass
-      if self.isConnected==2:
+
+#see which app is active (App text device 4 and Selector Switch 5)
+      if self.isConnected>=1:
        try:
-        log = str(subprocess.check_output("adb -s "+self.config["host"]+":"+str(self.config["port"])+ " shell dumpsys window windows |grep -E 'mFocusedApp'", shell=True, timeout=2))
+        log = str(subprocess.check_output("adb -s "+self.config["host"]+":"+str(self.config["port"])+ " shell dumpsys activity |grep -E 'mFocusedApp'", sh>
        except Exception as e:
         log = "error: "+str(e)
        if ("error:" in log):
@@ -361,16 +365,41 @@ class BasePlugin:
          current_focus = re.search(r'(\b\S+\/\S+\b)', log, re.IGNORECASE).group(0)
         except:
          current_focus = ""
-        if str(Devices[4].sValue).strip() != str(current_focus).strip():
-         Devices[4].Update(nValue=0,sValue=str(current_focus))
 
+       ase = 'Apps'
+       cmdl = ""
+       if self.cfg.has_section(ase):
+        ops = self.cfg.options(ase)
+        cmdc = 0
+        for o in ops:
+         cmdl = self.cfg.get(ase,o,raw=True)
+         #find the activity from the list in the database
+         ret=re.split("shell am start -n|shell monkey -p|-c|/", cmdl)
+         cmdc += 10
+         if (str(ret[1]).strip() in str(current_focus).strip()):
+           try:
+             if str(Devices[5].sValue).strip() != str(cmdc): # Updating Selector Switch
+               Devices[5].Update(nValue=1,sValue=str(cmdc))
+             if str(Devices[4].sValue).strip() != str(o).strip(): # Updating Text device with App name
+               Devices[4].Update(nValue=1,sValue=str(o).strip())
+           except:
+             pass
+
+#Power on or Off
      if currentStatus == 0:
       if Devices[1].nValue != currentStatus:
        Devices[1].Update(nValue=0,sValue="Off")
-       Devices[4].Update(nValue=0,sValue="")
+       Devices[2].Update(nValue=0,sValue="Off")
+       Devices[3].Update(nValue=0,sValue="Off")
+       Devices[5].Update(nValue=0,sValue="")
+       Devices[6].Update(nValue=0,sValue="Off")
      else:
       if Devices[1].nValue != currentStatus:
        Devices[1].Update(nValue=1,sValue="On")
+       Devices[2].Update(nValue=1,sValue="On")
+       Devices[3].Update(nValue=1,sValue="On")
+       Devices[5].Update(nValue=1,sValue="On")
+       Devices[6].Update(nValue=1,sValue="On")
      return True
 
 global _plugin
@@ -407,3 +436,4 @@ def onCommand(Unit, Command, Level, Color):
 def onHeartbeat():
     global _plugin
     _plugin.onHeartbeat()
+    
