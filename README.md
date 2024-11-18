@@ -17,13 +17,15 @@ If you want to use Wake-On-Lan capability, enable it on the TV network menu, and
 
     sudo apt-get install git adb
     cd ~/domoticz/plugins/
-    git clone https://github.com/enesbcs/domo-androidtv.git
+    git clone https://github.com/wvries/Domoticz-AndroidTV.git
     service domoticz restart
 
 AndroidTV plugin now should be appear on Domoticz Hardware list.
 After starting AndroidTV plugin in Domoticz, enable remote access on the TV screen.
+Install plugin for each Android TV you want to control.
 
 ## Customization
 
-App starting and Source selection commands configured for my Blaupunkt Android TV, other models might need other commands, which can be customized by editing database.ini file next to plugin.py.
+In the database.ini file you can change the settings / codes for the specific TV you have.
+Generic ADB codes and commands are used in this app.
 
