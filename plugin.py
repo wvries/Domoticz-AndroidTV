@@ -376,8 +376,6 @@ class BasePlugin:
             #find the activity from the list in the database
             ret=re.split("shell am start -n|shell monkey -p|-c|/", cmdl)
             cmdc += 10
-            Domoticz.Log("current Focus = "+current_focus)
-            Domoticz.Log(str(ret[1].strip()))
             if (str(ret[1]).strip() in str(current_focus).strip()):
              try:
                if str(Devices[5].sValue).strip() != str(cmdc): # Updating Selector Switch
@@ -389,7 +387,8 @@ class BasePlugin:
 
         except:
          current_focus = "" #TV probably off
-         Devices[4].Update(nValue=1,sValue="Off")
+         if str(Devices[4].sValue).strip() != "Off": # Updating Text device with App name
+            Devices[4].Update(nValue=1,sValue="Off")
 
 #Power on or Off
      if currentStatus == 0:
