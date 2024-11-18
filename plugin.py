@@ -354,37 +354,39 @@ class BasePlugin:
           pass
 
 #see which app is active (App text device 4 and Selector Switch 5)
-      if self.isConnected>=1:
-       try:
-        log = str(subprocess.check_output("adb -s "+self.config["host"]+":"+str(self.config["port"])+ " shell dumpsys activity |grep -E 'mFocusedApp'", shell=True, timeout=2))
+    if self.isConnected>=1:
+      try:
+        log = str(subprocess.check_output("adb -s "+self.config["host"]+":"+str(self.config["port"])+ " shell dumpsys activity |grep -E 'mCurrentFocus'", >
        except Exception as e:
         log = "error: "+str(e)
        if ("error:" in log):
         self.isConnected = 1
        elif "Focus" in log:
         try:
-         current_focus = re.search(r'(\b\S+\/\S+\b)', log, re.IGNORECASE).group(0)
+          current_focus = re.search(r'(\b\S+\/\S+\b)', log, re.IGNORECASE).group(0)
+          ase = 'Apps'
+          cmdl = ""
+          if self.cfg.has_section(ase):
+           ops = self.cfg.options(ase)
+           cmdc = 0
+           for o in ops:
+            cmdl = self.cfg.get(ase,o,raw=True)
+            #find the activity from the list in the database
+            ret=re.split("shell am start -n|shell monkey -p|-c|/", cmdl)
+            cmdc += 10
+            if (str(ret[1]).strip() in str(current_focus).strip()):
+             try:
+               if str(Devices[5].sValue).strip() != str(cmdc): # Updating Selector Switch
+                 Devices[5].Update(nValue=1,sValue=str(cmdc))
+               if str(Devices[4].sValue).strip() != str(o).strip(): # Updating Text device with App name
+                 Devices[4].Update(nValue=1,sValue=str(o).strip())
+             except:
+               pass
         except:
-         current_focus = ""
+         current_focus = "" #TV probably off
+         Devices[5].Update(nValue=1,sValue="0")
+         Devices[4].Update(nValue=1,sValue="Off")
 
-       ase = 'Apps'
-       cmdl = ""
-       if self.cfg.has_section(ase):
-        ops = self.cfg.options(ase)
-        cmdc = 0
-        for o in ops:
-         cmdl = self.cfg.get(ase,o,raw=True)
-         #find the activity from the list in the database
-         ret=re.split("shell am start -n|shell monkey -p|-c|/", cmdl)
-         cmdc += 10
-         if (str(ret[1]).strip() in str(current_focus).strip()):
-           try:
-             if str(Devices[5].sValue).strip() != str(cmdc): # Updating Selector Switch
-               Devices[5].Update(nValue=1,sValue=str(cmdc))
-             if str(Devices[4].sValue).strip() != str(o).strip(): # Updating Text device with App name
-               Devices[4].Update(nValue=1,sValue=str(o).strip())
-           except:
-             pass
 
 #Power on or Off
      if currentStatus == 0:
@@ -392,7 +394,7 @@ class BasePlugin:
        Devices[1].Update(nValue=0,sValue="Off")
        Devices[2].Update(nValue=0,sValue="Off")
        Devices[3].Update(nValue=0,sValue="Off")
-       Devices[5].Update(nValue=0,sValue="")
+       Devices[5].Update(nValue=0,sValue="Off")
        Devices[6].Update(nValue=0,sValue="Off")
      else:
       if Devices[1].nValue != currentStatus:
